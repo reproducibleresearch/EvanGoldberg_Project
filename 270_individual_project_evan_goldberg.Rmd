@@ -37,6 +37,8 @@ us_counties <- read.csv("us-counties.csv")
 cases <- read.csv("cases.csv")
 ```
 
+1. New cases as a function of time with a rolling average plot - the first plot on the page (you don't need to recreate the colors or theme)
+
 ```{r}
 #initial data cleaning, drop missing values and group by date so that there is 
 #one entry of cases per date
@@ -61,15 +63,13 @@ cases_per_day$new_cases_7dayavg <- round(rollmean(cases_per_day$new_cases,
                                                   k = 7, fill = NA))
 cases_per_day$new_cases_7dayavg <- lag(cases_per_day$new_cases_7dayavg, n = 3) 
 
-#drop rows before March 1st
-cases_per_day <- cases_per_day %>% filter(date >= as.Date("2020-03-01"))
+#drop rows before March 1st 2020 and after January 17th 2021
+cases_per_day <- cases_per_day %>% filter(date >= as.Date("2020-03-01") & date <= as.Date("2021-01-17"))
 
 #replace the entry of March 1st to represent the total number of cases up until
 #March 1st
 cases_per_day$new_cases[1] <- cases_per_day$cases[1]
 ```
-
-1. New cases as a function of time with a rolling average plot - the first plot on the page (you don't need to recreate the colors or theme)
 
 ```{r}
 ggplot(cases_per_day)+
@@ -113,11 +113,92 @@ ggplot(cases_per_day)+
   ggtitle("Coronavirus in the U.S.: Case Count")
 ```
 
-This figure was fairly easy to reproduce, however there were some aspects of the original figure that are not explained very well. Specifically how they derived their data for the first week of 7 day averages is not super clear. They do not explain whether they use data from prior dates that are not shown, or whether they derive the values differently for the first week. Simply using data from the last week of February yields values slightly below their values, however it does not appear to be significantly different, and thus, does not drastically change our understanding of the figure. Overall I would say this figure does have fairly good reproducability.
+This figure was fairly easy to reproduce, however there were some aspects of the original figure that are not explained very well. Specifically how they derived their data for the first week of 7 day averages is not super clear. They do not explain whether they use data from prior dates that are not shown, or whether they derive the values differently for the first week. Simply using data from the last week of February yields values slightly below their values, however it does not appear to be significantly different, and thus, does not drastically change our understanding of the figure. Other than this slight discrepancy, all other values for new cases and 7-day averages match what the paper reports. Overall I would say this figure does have fairly good reproducibility
 
 2. Table of cases, hospitalizations and deaths - the first table on the page
 
 ![](nyt1.png){ width=75% }
+
+```{r}
+#repeat process but with deaths instead of cases
+deaths_per_day <- us_counties[,c("date", "deaths")] %>% 
+  drop_na() %>%
+  group_by(date) %>% 
+  summarise(deaths = sum(deaths))
+
+deaths_per_day$date <- as.Date(deaths_per_day$date, "%m/%d/%y") 
+
+#order data chronologically
+deaths_per_day <- deaths_per_day[order(deaths_per_day$date),] 
+
+#create a column for new deaths by subtracting the previous day's total number
+#of deaths from the current day's
+deaths_per_day$new_deaths <- deaths_per_day$deaths - lag(deaths_per_day$deaths)
+
+#create a rolling 7 day average which is the average number of new deaths over
+#the previous 7 days
+deaths_per_day$new_deaths_7dayavg <- round(rollmean(deaths_per_day$new_deaths, 
+                                                  k = 7, fill = NA))
+deaths_per_day$new_deaths_7dayavg <- lag(deaths_per_day$new_deaths_7dayavg, n = 3) 
+
+#drop rows before March 1st 2020 and after January 17th 2021
+deaths_per_day <- deaths_per_day %>% filter(date >= as.Date("2020-03-01") & date <= as.Date("2021-01-17"))
+
+#repeat process but with hospitalizations
+hospitalized_per_day <- cases[,c("date", "hospitalizedCurrently")] %>% 
+  drop_na() %>%
+  group_by(date) %>% 
+  summarise(hospitalized = sum(hospitalizedCurrently))
+
+hospitalized_per_day$date <- as.Date(hospitalized_per_day$date, "%m/%d/%y") 
+
+#order data chronologically
+hospitalized_per_day <- hospitalized_per_day[order(hospitalized_per_day$date),] 
+
+#create a rolling 7 day average which is the average number of new 
+#hospitalizations over the previous 7 days
+hospitalized_per_day$new_hospitalized_7dayavg <- round(rollmean(hospitalized_per_day$hospitalized, 
+                                                                k = 7, fill = NA))
+hospitalized_per_day$new_hospitalized_7dayavg <- lag(hospitalized_per_day$new_hospitalized_7dayavg, n = 3) 
+
+#drop rows before March 1st 2020 and after January 17th 2021
+hospitalized_per_day <- hospitalized_per_day %>% filter(date >= as.Date("2020-03-01") & date <= as.Date("2021-01-17"))
+```
+
+```{r}
+#merges cases, deaths, and hostpitalized per day into one data set for easier
+#use
+data_per_day <- merge(cases_per_day, 
+                      merge(deaths_per_day, 
+                            hospitalized_per_day, 
+                            by = "date"), 
+                      by = "date")
+
+#create a 14-day change column for cases, deaths, and hospitalizations
+data_per_day$new_cases_14daychange <- round((data_per_day$new_cases_7dayavg - lag(data_per_day$new_cases_7dayavg, n = 14))/lag(data_per_day$new_cases_7dayavg, n = 14), digits = 2)
+
+data_per_day$new_deaths_14daychange <- round((data_per_day$new_deaths_7dayavg - lag(data_per_day$new_deaths_7dayavg, n = 14))/lag(data_per_day$new_deaths_7dayavg, n = 14), digits = 2)
+
+data_per_day$new_hospitalized_14daychange <- round((data_per_day$new_hospitalized_7dayavg - lag(data_per_day$new_hospitalized_7dayavg, n = 14))/lag(data_per_day$new_hospitalized_7dayavg, n = 14), digits = 2)
+
+#create a basic table for cases, deaths, and hospitalizations
+table <- setNames(data.frame(matrix(ncol = 3, nrow = 0), stringsAsFactors = F), c("Total Reported", "On Jan. 17", "14-Day Change"))
+
+#take the total values, current values, and 14 day change values for cases, deaths, and hospitalizations on Jan. 17th 2021
+table <- rbind(table, c(data_per_day$cases[nrow(data_per_day)], data_per_day$new_cases[nrow(data_per_day)], data_per_day$new_cases_14daychange[nrow(data_per_day)]), make.row.names = TRUE)
+
+table <- rbind(table, c(data_per_day$death[nrow(data_per_day)], data_per_day$new_deaths[nrow(data_per_day)], data_per_day$new_deaths_14daychange[nrow(data_per_day)]), make.row.names = TRUE)
+
+table <- rbind(table, c(NA, data_per_day$hospitalized[nrow(data_per_day)], data_per_day$new_hospitalized_14daychange[nrow(data_per_day)]), make.row.names = TRUE)
+
+#add row and re-add column names that were lost during rbind
+rownames(table)<-c("Cases", "Deaths", "Hospitalized")
+colnames(table)<-c("Total Reported", "On Jan. 17", "14-Day Change")
+
+table
+```
+
+Like the associated figure, this table was fairly easy to reproduce. The first two columns are very easy to create since they simply require the total number reported as well as the daily number reported which are both accessible with very little data wrangling. The last column was a bit trickier since although they do mention how they calculated it, it's essentially hidden in the fine print. Obviously, there are some slight cosmetic differences between our table and the table in the article. Our table does not include the arrows, which appear to signify the current trend. The table in the article also highlights the Cases information in red and rewords the total number of cases reported slightly. Since all of our numbers do indeed match the paper, this table can be considered reproducible.
 
 3. The county-level map for previous week ('Hot spots') - the second plot on the page (only the 'Hot Spots' plot)
 
