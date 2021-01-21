@@ -32,25 +32,28 @@ library(lubridate)
 library(kableExtra)
 ```
 
-Tips:
-
-* You can extract the number of new cases from the case totals using the `lag` function. In this toy example, cases records the daily total/cumulative number of cases over a two-week period. By default, the lag function simply shifts the vector of cases back by one. The number of new cases on each day is then the difference between `cases` and `lag(cases)`.
-
-```{r, warning=FALSE}
-cases = c(13, 15, 18, 22, 29, 39, 59, 61, 62, 67, 74, 89, 108, 122)
-new_cases = cases - lag(cases)
-new_cases
+```{r}
+us_counties <- read.csv("/Users/EvanGoldberg/Desktop/Harvard/EvanGoldberg_Project/us-counties.csv")
+cases_total <- read.csv("/Users/EvanGoldberg/Desktop/Harvard/EvanGoldberg_Project/cases.csv")
 ```
 
-* You can write your own function to calculate a seven-day rolling average, but the `zoo` package already provides the `rollmean` function. Below, the `k = 7` argument tells the function to use a rolling window of seven entries. `fill = NA` tells `rollmean` to return `NA` for days where the seven-day rolling average can’t be calculated (e.g. on the first day, there are no days that come before, so the sliding window can’t cover seven days). That way, `new_cases_7dayavg` will be the same length as `cases` and `new_cases`, which would come in handy if they all belonged to the same data frame.
+```{r}
+cases_data <- cases_total[,c("date", "positive")] %>% 
+  drop_na() %>%
+  group_by(date) %>% 
+  summarise(cases = sum(positive))
 
-```{r, message=FALSE}
-new_cases_7dayavg = rollmean(new_cases, k = 7, fill = NA)
-new_cases_7dayavg
+cases_data$date <- as.Date(cases_data$date, "%m/%d/%y")
+cases_data <- cases_data[order(cases_data$date),] 
+cases_data$new_cases <- cases_data$cases - lag(cases_data$cases)
+
+cases_data$new_cases_7dayavg <- rollmean(cases_data$new_cases, k = 7, fill = NA)
+
+cases_data <- cases_data %>% filter(date >= as.Date("2020-03-01"))
 ```
-
 
 1. New cases as a function of time with a rolling average plot - the first plot on the page (you don't need to recreate the colors or theme)
+
 2. Table of cases, hospitalizations and deaths - the first table on the page
 
 ![](nyt1.png){ width=75% }
