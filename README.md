@@ -1,2 +1,2 @@
-# Evan_Project
+# EvanGoldberg_Project
 Repository for Evan Goldberg's Individual Project
