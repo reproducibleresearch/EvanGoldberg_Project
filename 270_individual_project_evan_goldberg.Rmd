@@ -33,26 +33,87 @@ library(kableExtra)
 ```
 
 ```{r}
-us_counties <- read.csv("/Users/EvanGoldberg/Desktop/Harvard/EvanGoldberg_Project/us-counties.csv")
-cases_total <- read.csv("/Users/EvanGoldberg/Desktop/Harvard/EvanGoldberg_Project/cases.csv")
+us_counties <- read.csv("us-counties.csv")
+cases <- read.csv("cases.csv")
 ```
 
 ```{r}
-cases_data <- cases_total[,c("date", "positive")] %>% 
+#initial data cleaning, drop missing values and group by date so that there is 
+#one entry of cases per date
+cases_per_day <- us_counties[,c("date", "cases")] %>% 
   drop_na() %>%
   group_by(date) %>% 
-  summarise(cases = sum(positive))
+  summarise(cases = sum(cases))
 
-cases_data$date <- as.Date(cases_data$date, "%m/%d/%y")
-cases_data <- cases_data[order(cases_data$date),] 
-cases_data$new_cases <- cases_data$cases - lag(cases_data$cases)
+#make the date variable readable in R
+cases_per_day$date <- as.Date(cases_per_day$date, "%m/%d/%y") 
 
-cases_data$new_cases_7dayavg <- rollmean(cases_data$new_cases, k = 7, fill = NA)
+#order data chronologically
+cases_per_day <- cases_per_day[order(cases_per_day$date),] 
 
-cases_data <- cases_data %>% filter(date >= as.Date("2020-03-01"))
+#create a column for new cases by subtracting the previous day's total number
+#of cases from the current day's
+cases_per_day$new_cases <- cases_per_day$cases - lag(cases_per_day$cases)
+
+#create a rolling 7 day average which is the average number of new cases over
+#the previous 7 days
+cases_per_day$new_cases_7dayavg <- round(rollmean(cases_per_day$new_cases, 
+                                                  k = 7, fill = NA))
+cases_per_day$new_cases_7dayavg <- lag(cases_per_day$new_cases_7dayavg, n = 3) 
+
+#drop rows before March 1st
+cases_per_day <- cases_per_day %>% filter(date >= as.Date("2020-03-01"))
+
+#replace the entry of March 1st to represent the total number of cases up until
+#March 1st
+cases_per_day$new_cases[1] <- cases_per_day$cases[1]
 ```
 
 1. New cases as a function of time with a rolling average plot - the first plot on the page (you don't need to recreate the colors or theme)
+
+```{r}
+ggplot(cases_per_day)+
+  geom_col(aes(x = date, y= new_cases), #create the columns for new cases
+           color = "salmon", 
+           alpha = 0.75, 
+           width = 0.01)+
+  geom_line(aes(x = date, y= new_cases_7dayavg), 
+            color = "darkred")+ #creates the line for 7-day average
+  scale_x_date(date_breaks = "1 month", 
+               date_labels = "%b-%Y")+
+  scale_y_continuous(breaks = c(0, 100000, 200000, 300000), 
+                     labels = c("0", "100,000", "200,000", "300,000"))+
+  xlab("Date")+
+  ylab("Cases")+
+  theme(axis.text.x = element_text(size = 6))+
+  #create labels to differentiate the columns and line plots
+  geom_text(
+    label="7-day average", 
+    x=as.Date("2020-07-25"),
+    y=100000,
+    size = 3
+    )+
+  geom_segment(aes(x = as.Date("2020-07-25"), 
+                   y = 66000, 
+                   xend = as.Date("2020-07-25"), 
+                   yend = 92000), 
+               size = 0.2)+
+  theme(axis.text.x = element_text(size = 6))+
+  geom_text(
+    label="New cases", 
+    x=as.Date("2020-12-01"),
+    y=300000,
+    size = 3
+    )+
+  geom_segment(aes(x = as.Date("2020-12-25"), 
+                   y = 300000, 
+                   xend = as.Date("2021-01-08"), 
+                   yend = 300000), 
+               size = 0.2)+
+  ggtitle("Coronavirus in the U.S.: Case Count")
+```
+
+This figure was fairly easy to reproduce, however there were some aspects of the original figure that are not explained very well. Specifically how they derived their data for the first week of 7 day averages is not super clear. They do not explain whether they use data from prior dates that are not shown, or whether they derive the values differently for the first week. Simply using data from the last week of February yields values slightly below their values, however it does not appear to be significantly different, and thus, does not drastically change our understanding of the figure. Overall I would say this figure does have fairly good reproducability.
 
 2. Table of cases, hospitalizations and deaths - the first table on the page
 
