@@ -1,26 +1,18 @@
 ---
 title: "BST 270 Individual Project"
+author: "Evan Goldberg"
 output:
-  pdf_document: default
   html_document: default
+  pdf_document: default
 urlcolor: blue
 ---
 
-In May 2020, the Georgia Department of Public Health posted the following plot to illustrate the number of confirmed COVID-19 cases in their hardest-hit counties over a two-week period. Health officials claimed that the plot provided evidence that COVID-19 cases were decreasing and made the argument for reopening the state.
-
-![](georgia.png){ width=75% }
-
-The plot was heavily criticized by the statistical community and several media outlets for its deceptive portrayal of COVID-19 trends in Georgia. Whether the end result was due to malicious intent or simply poor judgment, it is incredibly irresponsible to publish data visualizations that obscure and distort the truth. 
-
-Data visualization is an incredibly powerful tool that can affect health policy decisions. Ensuring they are easy to interpret, and more importantly, showcase accurate insights from data is paramount for scientific transparency and the health of individuals. For this assignment you are tasked with reproducing COVID-19 visualizations and tables published by the [New York Times](https://www.nytimes.com/interactive/2020/us/coronavirus-us-cases.html).
-Specifically, you will attempt to reproduce the following for January 17th, 2021:
+In this project we attempt to reproduce the 4 following figures/tables.
 
 1. New cases as a function of time with a rolling average plot - the first plot on the page (you don't need to recreate the colors or theme)
 2. Table of cases, hospitalizations and deaths - the first table on the page
 3. The county-level map for previous week ('Hot spots') - the second plot on the page (only the 'Hot Spots' plot)
 4. Table of cases by state - the second table on the page (do not need to include per 100,000 or per capita columns)
-
-Data for cases and deaths can be downloaded from this [NYT GitHub repository](https://github.com/nytimes/covid-19-data) (use `us-counties.csv`). Data for hospitalizations can be downloaded from [The COVID Tracking Project](https://covidtracking.com/data). The project must be submitted in the form of a Jupyter notebook or RMarkdown file and corresponding compiled/knitted PDF, with commented code and text interspersed, including a **brief critique of the reproducibility of each plot and table**. All project documents must be uploaded to a GitHub repository each student will create within the [reproducible data science organization](https://github.com/reproducibleresearch). The repository must also include a README file describing the contents of the repository and how to reproduce all results. You should keep in mind the file and folder structure we covered in class and make the reproducible process as automated as possible.
 
 ```{r, warning=FALSE, echo=FALSE, message=FALSE}
 # Load libraries
@@ -32,12 +24,16 @@ library(lubridate)
 library(kableExtra)
 ```
 
+We use two data files. First we use data from us-counties.csv which can be accessed in the [NYT GitHub repository](https://github.com/nytimes/covid-19-data) as well as in our repository. This will be our primary source of data for this project. We also use data from [The COVID Tracking Project](https://covidtracking.com/data) for hospitalization data.
+
 ```{r}
 us_counties <- read.csv("us-counties.csv")
 cases <- read.csv("cases.csv")
 ```
 
-1. New cases as a function of time with a rolling average plot - the first plot on the page (you don't need to recreate the colors or theme)
+# Figure 1. 
+
+Our data is made up of dates and the number of cases that have been reported in a given county up to that date. While we will have a use for that later, we actually need to wrangle our data in order to get new cases for a given day. We will then take these new cases per day in order to calculate a 7-day rolling average. The steps to do this are shown below.
 
 ```{r}
 #initial data cleaning, drop missing values and group by date so that there is 
@@ -70,6 +66,8 @@ cases_per_day <- cases_per_day %>% filter(date >= as.Date("2020-03-01") & date <
 #March 1st
 cases_per_day$new_cases[1] <- cases_per_day$cases[1]
 ```
+
+Now that we have performed the necessary data wrangling, we can use ggplot to create an appropriate plot.
 
 ```{r}
 ggplot(cases_per_day)+
@@ -113,11 +111,15 @@ ggplot(cases_per_day)+
   ggtitle("Coronavirus in the U.S.: Case Count")
 ```
 
-This figure was fairly easy to reproduce, however there were some aspects of the original figure that are not explained very well. Specifically how they derived their data for the first week of 7 day averages is not super clear. They do not explain whether they use data from prior dates that are not shown, or whether they derive the values differently for the first week. Simply using data from the last week of February yields values slightly below their values, however it does not appear to be significantly different, and thus, does not drastically change our understanding of the figure. Other than this slight discrepancy, all other values for new cases and 7-day averages match what the paper reports. Overall I would say this figure does have fairly good reproducibility
+This figure was fairly easy to reproduce and looks very similar to the original plot in the New York Times article, however there were some aspects of the original figure that are not explained very well. Specifically how they derived their data for the first week of 7 day averages is not super clear. They do not explain whether they use data from prior dates that are not shown, or whether they derive the values differently for the first week. Simply using data from the last week of February yields values slightly below their values, however it does not appear to be significantly different, and thus does not drastically change our understanding of the figure. Other than this slight discrepancy, all other values for new cases and 7-day averages match what the paper reports. The variable names are clear and the data is well kept and easy to understand. Overall I would say this figure does have fairly good reproducibility
 
-2. Table of cases, hospitalizations and deaths - the first table on the page
+# Table 2.
 
-![](nyt1.png){ width=75% }
+In order to create this table, we need to perform similar steps to what we did for Figure 1, but this time with death and hospitalization data. Our us-counties.csv file contains death data in the same format as the cases data so it should be very easy to form the same types of manipulations. However, we have to get our hospitalization data from elsewhere, specifically from [The COVID Tracking Project](https://covidtracking.com/data). We have already downloaded the data and it can be accessed from the cases.csv in our repository. We perform similar manipulations, however it is important to note that our hospitalization data is in the form of new cases per day rather than total cases. This actually saves us a step.
+
+In order to create the desired table we want to obtain the following information.
+
+We want the total number of cases and deaths as of January 17th, 2021. We also want the number of new cases, new deaths, and new hospitalizations on January 17th, 2021. Finally, we want the 14-day change percentage for cases, deaths, and hospitalizations. This is calculated using the 7 day average instead of just new cases so it is slightly more complicated, however it is still quite doable. This will tell us the percent change from January 4th, 2021 to January 17th, 2021. The steps to do this are shown below.
 
 ```{r}
 #repeat process but with deaths instead of cases
@@ -128,23 +130,19 @@ deaths_per_day <- us_counties[,c("date", "deaths")] %>%
 
 deaths_per_day$date <- as.Date(deaths_per_day$date, "%m/%d/%y") 
 
-#order data chronologically
 deaths_per_day <- deaths_per_day[order(deaths_per_day$date),] 
 
-#create a column for new deaths by subtracting the previous day's total number
-#of deaths from the current day's
 deaths_per_day$new_deaths <- deaths_per_day$deaths - lag(deaths_per_day$deaths)
 
-#create a rolling 7 day average which is the average number of new deaths over
-#the previous 7 days
 deaths_per_day$new_deaths_7dayavg <- round(rollmean(deaths_per_day$new_deaths, 
                                                   k = 7, fill = NA))
 deaths_per_day$new_deaths_7dayavg <- lag(deaths_per_day$new_deaths_7dayavg, n = 3) 
 
-#drop rows before March 1st 2020 and after January 17th 2021
 deaths_per_day <- deaths_per_day %>% filter(date >= as.Date("2020-03-01") & date <= as.Date("2021-01-17"))
 
 #repeat process but with hospitalizations
+#note that we can skip the step where we generate new cases since we already
+#have that information
 hospitalized_per_day <- cases[,c("date", "hospitalizedCurrently")] %>% 
   drop_na() %>%
   group_by(date) %>% 
@@ -152,18 +150,16 @@ hospitalized_per_day <- cases[,c("date", "hospitalizedCurrently")] %>%
 
 hospitalized_per_day$date <- as.Date(hospitalized_per_day$date, "%m/%d/%y") 
 
-#order data chronologically
 hospitalized_per_day <- hospitalized_per_day[order(hospitalized_per_day$date),] 
 
-#create a rolling 7 day average which is the average number of new 
-#hospitalizations over the previous 7 days
 hospitalized_per_day$new_hospitalized_7dayavg <- round(rollmean(hospitalized_per_day$hospitalized, 
                                                                 k = 7, fill = NA))
 hospitalized_per_day$new_hospitalized_7dayavg <- lag(hospitalized_per_day$new_hospitalized_7dayavg, n = 3) 
 
-#drop rows before March 1st 2020 and after January 17th 2021
 hospitalized_per_day <- hospitalized_per_day %>% filter(date >= as.Date("2020-03-01") & date <= as.Date("2021-01-17"))
 ```
+
+We combine our three individual datasets into one for easy accessibility (we call it data_per_day to match the 3 datasets that we are combining). We then hand pick the values in this table that correspond to our desired values for the table. All the data we desire is in the last row of the data set.
 
 ```{r}
 #merges cases, deaths, and hostpitalized per day into one data set for easier
@@ -198,15 +194,77 @@ colnames(table)<-c("Total Reported", "On Jan. 17", "14-Day Change")
 table
 ```
 
-Like the associated figure, this table was fairly easy to reproduce. The first two columns are very easy to create since they simply require the total number reported as well as the daily number reported which are both accessible with very little data wrangling. The last column was a bit trickier since although they do mention how they calculated it, it's essentially hidden in the fine print. Obviously, there are some slight cosmetic differences between our table and the table in the article. Our table does not include the arrows, which appear to signify the current trend. The table in the article also highlights the Cases information in red and rewords the total number of cases reported slightly. Since all of our numbers do indeed match the paper, this table can be considered reproducible.
+Like the associated figure, this table was fairly easy to reproduce. The first two columns are very easy to create since they simply require the total number reported as well as the daily number reported which are both accessible with very little data wrangling. The last column was a bit trickier since although they do mention how they calculated it, it's essentially hidden in the fine print. Obviously, there are some slight cosmetic differences between our table and the table in the article. Our table does not include the arrows which appear to signify the current trend. The table in the article also highlights the Cases information in red and rewords the total number of cases reported slightly. Since all of our numbers do indeed match the paper, this table can be considered reproducible, and the steps to do so are fairly straightforward.
 
-3. The county-level map for previous week ('Hot spots') - the second plot on the page (only the 'Hot Spots' plot)
+# Table 4. 
 
-![](nyt2.png){ width=75% }
+In order to create this table, we return back to our us-counties.csv file. We will perform many of the same steps as the work we did for Figure 1., however this time we will also be grouping by states. The values we care about are the total number of cases as of January 17th, 2021 for each state, as well as the daily average in the last 7 days as of January 17th, 2021 for each state. 
 
-4. Table of cases by state - the second table on the page (do not need to include per 100,000 or per capita columns)
+```{r}
+#initial data cleaning, drop missing values and group by date and state so that there is 
+#one entry of cases per date for each state
+state_cases_per_day <- us_counties[,c("date", "state", "cases")] %>% 
+  drop_na() %>%
+  group_by(state,date) %>% 
+  summarise(cases = sum(cases))
 
-![](nyt3.png){ width=75% }
+#make the date variable readable in R
+state_cases_per_day$date <- as.Date(state_cases_per_day$date, "%m/%d/%y") 
 
+#order data chronologically within each state
+state_cases_per_day <- state_cases_per_day[order(state_cases_per_day$state, state_cases_per_day$date),] 
 
+#create a column for new cases by subtracting the previous day's total number
+#of cases from the current day's
+#this will cause us to have incorrect information for the first day of the
+#pandemic for each state, however can easily address this afterwards
+#we will need this information for our 7 day average
 
+state_cases_per_day$new_cases <- state_cases_per_day$cases - lag(state_cases_per_day$cases)
+
+#the code below replaces the first entry of new cases for each state with the
+#first entry of total cases for each state like it is done for Figure 1.
+for(i in unique(state_cases_per_day$state))
+{
+  state_cases_per_day$new_cases[which(state_cases_per_day$state==i)[1]] <- state_cases_per_day$cases[which(state_cases_per_day$state==i)[1]]
+}
+
+#we will need to create a temporary dataset to store each state's data
+#individually in order to create accurate 7 day averages
+
+state_cases_per_day$new_cases_7dayavg <- 0 #initialize the column
+
+for(i in unique(state_cases_per_day$state))
+{
+  #create a temporary list of new cases for the given state
+  state_new_cases_temp <- state_cases_per_day$new_cases[which(state_cases_per_day$state==i)]
+  
+  #calculate the 7 day average and shift them so they align properly
+  state_new_cases_7dayavg_temp <- round(rollmean(state_new_cases_temp, 
+                                                  k = 7, fill = NA))
+  state_new_cases_7dayavg_temp <- lag(state_new_cases_7dayavg_temp, n = 3)
+  
+  #link the 7 day average data to the corresponding state and day
+  for(j in which(state_cases_per_day$state==i))
+      {
+        state_cases_per_day$new_cases_7dayavg[j]<-state_new_cases_7dayavg_temp[j-which(state_cases_per_day$state==i)[1]+1]
+      }
+}
+
+#create a new dataset that only contains values corresponding to January 17th, 2021
+state_cases_final <- state_cases_per_day %>% filter(date == as.Date("2021-01-17"))
+```
+
+Now that we have wrangled our data, we can drop the unnecessary columns in order to create our table.
+
+```{r}
+table2 <- state_cases_final[c("state", "cases", "new_cases_7dayavg")]
+colnames(table2) <- c("state", "total cases", "daily average in last 7 days")
+table2
+```
+
+Like the previous table, this table was fairly easy to reproduce. The hardest part was sorting the data in order to properly calculate the daily average in the last 7 days. We can see that our numbers match perfectly with the numbers reported in the New York Times Article. We have already worked with this data in previous sections so we know it is easy to work with and the variables all make sense and are named properly. I consider this table to be reproducible, and the steps to do so were relatively simple.
+
+# Conclusion
+
+Based on my experience working on this project. I would say that the tables and figures presented in the New York Times article are definitely reproducible. The data is easily accessible and easy to understand since it is sorted well and the columns are all properly named. Although there were some steps that were not so clear, particularly with how the 7 day averages were calculated, I did not find any part of the reproducing process to be particularly difficult or undoable. In the end all our values matched the values presented in the figures and tables which is always a good sign. Obviously extra steps would be needed in or to cosmetically reproduce their figures and tables perfectly, but for the scope of this project, that is not necessary. I would give the article an A for reproduceability due to the accessibility of the data used and the overall clear explanations on how values are calculated. The slight lack of clarity for the 7 day averages holds the paper back from the coveted A+ grade. 
