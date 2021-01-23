@@ -1,7 +1,7 @@
 # EvanGoldberg_Project
 Repository for Evan Goldberg's Individual Project
 
-This repository contains the data and code needed in order to reproduce the figures and tables presented in the New York Times article, [oronavirus in the U.S.:
+This repository contains the data and code needed in order to reproduce the figures and tables presented in the New York Times article, [Coronavirus in the U.S.:
 Latest Map and Case Count](https://www.nytimes.com/interactive/2020/us/coronavirus-us-cases.html#anomaly-notes). 
 
 The first data set is the us-counties.csv which can be accessed in the [NYT GitHub repository](https://github.com/nytimes/covid-19-data) as well as in our repository. This is the primary source of data for this project. It contains information about COVID cases and deaths at the state and county level. It is important to note that this dataset is updated daily in the NYT GitHub. Our version was accessed on January 19th, 2021, and this project was designed to reproduce results as of January 17th, 2021. 
