@@ -2,8 +2,8 @@
 title: "BST 270 Individual Project"
 author: "Evan Goldberg"
 output:
-  html_document: default
   pdf_document: default
+  html_document: default
 urlcolor: blue
 ---
 
