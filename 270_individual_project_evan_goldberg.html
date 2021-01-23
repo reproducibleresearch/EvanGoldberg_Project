@@ -532,10 +532,6 @@ table</code></pre>
 <p>Additionally, it is important to recognize the slight difference between how hospitalizations are defined compared to cases and deaths. Our value of 124387 is the number of people hospitalized on January 17th, 2021, not the number of NEW hospitalization cases. This also means that our 14-day change is defined slightly differently. For hospitalizations, it is the change in total hospitalizations. This is not explained super well in the article which detracts slightly from its reproducibility.</p>
 <p>Obviously, there are some slight cosmetic differences between our table and the table in the article. Our table does not include the arrows which appear to signify the current trend. The table in the article also highlights the Cases information in red and rewords the total number of cases reported slightly. Since all of our numbers do indeed match the paper, despite the slight discrepancy with hospitalization, this table can be considered reproducible and the steps to do so are fairly straightforward.</p>
 </div>
-<div id="figure-3." class="section level1">
-<h1>Figure 3.</h1>
-<p>The county-level map for previous week (‘Hot spots’) - the second plot on the page (only the ‘Hot Spots’ plot)</p>
-</div>
 <div id="table-4." class="section level1">
 <h1>Table 4.</h1>
 <p>In order to create this table, we return back to our us-counties.csv file. We will perform many of the same steps as the work we did for Figure 1., however this time we will also be grouping by states. The values we care about are the total number of cases as of January 17th, 2021 for each state, as well as the daily average in the last 7 days as of January 17th, 2021 for each state.</p>
@@ -557,7 +553,6 @@ state_cases_per_day &lt;- state_cases_per_day[order(state_cases_per_day$state, s
 #this will cause us to have incorrect information for the first day of the
 #pandemic for each state, however can easily address this afterwards
 #we will need this information for our 7 day average
-
 state_cases_per_day$new_cases &lt;- state_cases_per_day$cases - lag(state_cases_per_day$cases)
 
 #the code below replaces the first entry of new cases for each state with the
@@ -569,7 +564,6 @@ for(i in unique(state_cases_per_day$state))
 
 #we will need to create a temporary dataset to store each state&#39;s data
 #individually in order to create accurate 7 day averages
-
 state_cases_per_day$new_cases_7dayavg &lt;- 0 #initialize the column
 
 for(i in unique(state_cases_per_day$state))

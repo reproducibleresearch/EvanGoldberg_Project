@@ -200,10 +200,6 @@ Additionally, it is important to recognize the slight difference between how hos
 
 Obviously, there are some slight cosmetic differences between our table and the table in the article. Our table does not include the arrows which appear to signify the current trend. The table in the article also highlights the Cases information in red and rewords the total number of cases reported slightly. Since all of our numbers do indeed match the paper, despite the slight discrepancy with hospitalization, this table can be considered reproducible and the steps to do so are fairly straightforward.
 
-# Figure 3.
-
-The county-level map for previous week ('Hot spots') - the second plot on the page (only the 'Hot Spots' plot)
-
 # Table 4. 
 
 In order to create this table, we return back to our us-counties.csv file. We will perform many of the same steps as the work we did for Figure 1., however this time we will also be grouping by states. The values we care about are the total number of cases as of January 17th, 2021 for each state, as well as the daily average in the last 7 days as of January 17th, 2021 for each state. 
@@ -227,7 +223,6 @@ state_cases_per_day <- state_cases_per_day[order(state_cases_per_day$state, stat
 #this will cause us to have incorrect information for the first day of the
 #pandemic for each state, however can easily address this afterwards
 #we will need this information for our 7 day average
-
 state_cases_per_day$new_cases <- state_cases_per_day$cases - lag(state_cases_per_day$cases)
 
 #the code below replaces the first entry of new cases for each state with the
@@ -239,7 +234,6 @@ for(i in unique(state_cases_per_day$state))
 
 #we will need to create a temporary dataset to store each state's data
 #individually in order to create accurate 7 day averages
-
 state_cases_per_day$new_cases_7dayavg <- 0 #initialize the column
 
 for(i in unique(state_cases_per_day$state))
